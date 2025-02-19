@@ -34,23 +34,23 @@ async function sendToHouston(client) {
 		_count: true,
 		_sum: { messageCount: true },
 	});
-	const messages = users._sum.messageCount;
+	const messages = users._sum.messageCount || 0; 
 	const stats = {
-		activated_users: users._count,
-		arch: process.arch,
-		database: process.env.DB_PROVIDER,
-		guilds: await relativePool(.25, 'stats', pool => Promise.all(
-			guilds
-				.filter(guild => client.guilds.cache.has(guild.id))
-				.map(guild => {
-					guild.members = client.guilds.cache.get(guild.id).memberCount;
-					return pool.queue(w => w.aggregateGuildForHouston(guild, messages));
-				}),
-		)),
-		id: md5(client.user.id),
-		node: process.version,
-		os: process.platform,
-		version,
+	  activated_users: users._count,
+	  arch: process.arch,
+	  database: process.env.DB_PROVIDER,
+	  guilds: await relativePool(.25, 'stats', pool => Promise.all(
+	    guilds
+	      .filter(guild => client.guilds.cache.has(guild.id))
+	      .map(guild => {
+	        guild.members = client.guilds.cache.get(guild.id).memberCount;
+	        return pool.queue(w => w.aggregateGuildForHouston(guild, messages));
+	      }),
+	  )),
+	  id: md5(client.user.id),
+	  node: process.version,
+	  os: process.platform,
+	  version,
 	};
 	const delta = guilds.length - stats.guilds.length;
 
