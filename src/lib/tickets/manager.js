@@ -1042,6 +1042,7 @@ module.exports = class TicketManager {
 	/**
 	 * @param {import("discord.js").ChatInputCommandInteraction|import("discord.js").ButtonInteraction} interaction
 	 */
+
 	async beforeRequestClose(interaction) {
 		const ticket = await this.getTicket(interaction.channel.id);
 		if (!ticket) {
@@ -1070,49 +1071,78 @@ module.exports = class TicketManager {
 				],
 			});
 		}
-
+	
 		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
 		const staff = await isStaff(interaction.guild, interaction.user.id);
-		const reason = interaction.options?.getString('reason', false) || null; // ?. because it could be a button interaction
-
+		const reason = interaction.options?.getString('reason', false) || null;
+	
 		if (ticket.createdById !== interaction.user.id && !staff) {
-			return await interaction.editReply({
+			return await interaction.reply({
 				embeds: [
 					new ExtendedEmbedBuilder()
 						.setColor(ticket.guild.errorColour)
 						.setTitle(getMessage('ticket.close.forbidden.title'))
 						.setDescription(getMessage('ticket.close.forbidden.description')),
 				],
+				ephemeral: true
 			});
 		}
-
+	
+		// Show confirmation dialog
+		await interaction.reply({
+			components: [
+				new ActionRowBuilder()
+					.addComponents(
+						new ButtonBuilder()
+							.setCustomId(JSON.stringify({
+								action: 'close',
+								accepted: true
+							}))
+							.setStyle(ButtonStyle.Danger)
+							.setEmoji('✖️')
+							.setLabel(getMessage('buttons.close.text')),
+						new ButtonBuilder()
+							.setCustomId(JSON.stringify({
+								action: 'close',
+								accepted: false
+							}))
+							.setStyle(ButtonStyle.Secondary)
+							.setEmoji('➖')
+							.setLabel(getMessage('buttons.cancel.text'))
+					),
+			],
+			embeds: [
+				new ExtendedEmbedBuilder()
+					.setColor(ticket.guild.primaryColour)
+					.setTitle(getMessage('ticket.close.staff_request.title'))
+					.setDescription(getMessage('ticket.close.staff_request.description', { requestedBy: interaction.user.toString() }))
+			],
+			ephemeral: true
+		});
+	
+		// Handle feedback if needed
 		if (
 			ticket.createdById === interaction.user.id &&
 			ticket.category.enableFeedback &&
 			!ticket.feedback
 		) {
-			return await interaction.showModal(this.buildFeedbackModal(ticket.guild.locale, {
+			await interaction.showModal(this.buildFeedbackModal(ticket.guild.locale, {
 				next: 'requestClose',
-				reason, // known issue: a reason longer than a few words will cause an error due to 100 character custom_id limit
+				reason,
 			}));
 		}
-
-		// not showing feedback, so send the close request
-
-		// defer asap
-		await interaction.deferReply();
-
-		// if the creator isn't in the guild , close the ticket immediately
-		// (although leaving should cause the ticket to be closed anyway)
+	
+		// Check if creator is still in guild
 		try {
 			await interaction.guild.members.fetch(ticket.createdById);
 		} catch {
-			return this.finallyClose(ticket.id, { reason });
+			await this.finallyClose(ticket.id, { reason });
+			return;
 		}
-
-		this.requestClose(interaction, reason);
+	
+		// Request closure
+		await this.requestClose(interaction, reason);
 	}
-
 	/**
 	 * @param {import("discord.js").ChatInputCommandInteraction
 	 * | import("discord.js").ButtonInteraction
