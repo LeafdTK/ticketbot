@@ -58,47 +58,18 @@ module.exports = class extends Listener {
 		if (client.config.presence.activities?.length > 0) {
 			let next = 0;
 			const setPresence = async () => {
-				const cacheKey = 'cache/presence';
-				let cached = await client.keyv.get(cacheKey);
-				if (!cached) {
-					const tickets = await client.prisma.ticket.findMany({
-						select: {
-							closedAt: true,
-							createdAt: true,
-							firstResponseAt: true,
-						},
-					});
-					const closedTickets = tickets.filter(t => t.closedAt);
-					const closedTicketsWithResponse = closedTickets.filter(t => t.firstResponseAt);
-					const {
-						avgResolutionTime,
-						avgResponseTime,
-					} = await getAverageTimes(closedTicketsWithResponse);
-					cached = {
-						avgResolutionTime: ms(avgResolutionTime),
-						avgResponseTime: ms(avgResponseTime),
-						guilds: client.guilds.cache.size,
-						openTickets: tickets.length - closedTickets.length,
-						totalTickets: tickets.length,
-					};
-					await client.keyv.set(cacheKey, cached, ms('15m'));
-				}
-				const activity = { ...client.config.presence.activities[next] };
-				activity.name = activity.name
-					.replace(/{+avgResolutionTime}+/gi, cached.avgResolutionTime)
-					.replace(/{+avgResponseTime}+/gi, cached.avgResponseTime)
-					.replace(/{+guilds}+/gi, cached.guilds)
-					.replace(/{+openTickets}+/gi, cached.openTickets)
-					.replace(/{+totalTickets}+/gi, cached.totalTickets);
+				const activity = {
+					name: "MARCUSK",
+					type: ActivityType.Watching,
+					url: "https://www.youtube.com/@MARCUSK298"
+				};
+				
 				client.user.setPresence({
 					activities: [activity],
-					status: client.config.presence.status,
+					status: 'online'
 				});
-				next++;
-				if (next === client.config.presence.activities.length) next = 0;
 			};
 			setPresence();
-			if (client.config.presence.activities.length > 1) setInterval(() => setPresence(), client.config.presence.interval * 1000);
 		} else {
 			client.log.info('Presence activities are disabled');
 		}
