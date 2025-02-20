@@ -8,6 +8,7 @@ const {
 	EmbedBuilder,
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder,
+	ThreadAutoArchiveDuration,
 } = require('discord.js');
 const {
 	getCommonGuilds,
@@ -15,7 +16,6 @@ const {
 } = require('../../lib/users');
 const ms = require('ms');
 const emoji = require('node-emoji');
-const { ChannelType, ThreadAutoArchiveDuration } = require('discord.js');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
