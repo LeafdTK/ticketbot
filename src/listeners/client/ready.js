@@ -7,6 +7,7 @@ const {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
+	ActivityType,
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const {
