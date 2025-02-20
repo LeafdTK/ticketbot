@@ -15,6 +15,7 @@ const {
 } = require('../../lib/users');
 const ms = require('ms');
 const emoji = require('node-emoji');
+const { ChannelType, ThreadAutoArchiveDuration } = require('discord.js');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -25,73 +26,36 @@ module.exports = class extends Listener {
 		});
 	}
 
-	/**
- 	 * @param {import('@prisma/client').Guild} settings
-	 * @param {import("discord.js").ButtonInteraction|import("discord.js").SelectMenuInteraction} interaction
-	 */
-	async useGuild(settings, interaction, topic) {
-		const getMessage = this.client.i18n.getLocale(settings.locale);
-		if (settings.categories.length === 0) {
-			interaction.update({
-				components: [],
-				embeds: [
-					new EmbedBuilder()
-						.setColor(settings.errorColour)
-						.setTitle(getMessage('misc.no_categories.title'))
-						.setDescription(getMessage('misc.no_categories.description', { url: `${process.env.HTTP_EXTERNAL}/settings/${interaction.guildId}` })),
-				],
-			});
-		} else if (settings.categories.length === 1) {
-			await this.client.tickets.create({
-				categoryId: settings.categories[0].id,
-				interaction,
-				topic,
-			});
-		} else {
-			await interaction.update({
-				components: [
-					new ActionRowBuilder()
-						.setComponents(
-							new StringSelectMenuBuilder()
-								.setCustomId(JSON.stringify({
-									action: 'create',
-									topic,
-								}))
-								.setPlaceholder(getMessage('menus.category.placeholder'))
-								.setOptions(
-									settings.categories.map(category =>
-										new StringSelectMenuOptionBuilder()
-											.setValue(String(category.id))
-											.setLabel(category.name)
-											.setDescription(category.description)
-											.setEmoji(emoji.hasEmoji(category.emoji) ? emoji.get(category.emoji) : { id: category.emoji }),
-									),
-								),
-						),
-				],
-			});
-			interaction.message.awaitMessageComponent({
-				componentType: ComponentType.SelectMenu,
-				filter: () => true,
-				time: ms('30s'),
-			})
-				.then(async () => {
-					interaction.message.delete();
-				})
-				.catch(error => {
-					if (error) this.client.log.error(error);
-					interaction.message.delete();
-				});
-		}
-
-	}
-
-	/**
-	 * @param {import("discord.js").Message} message
-	 */
 	async run(message) {
 		/** @type {import("client")} */
 		const client = this.client;
+
+		if (!message.author.bot) {
+			
+			if (message.channel.id === '1082297348471922738') {
+				try {
+					await message.startThread({
+						name: `art-${message.content.slice(0, 90)}`, 
+						autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+						reason: 'Automatic art discussion thread'
+					});
+				} catch (error) {
+					client.log.error('Failed to create art thread:', error);
+				}
+			}
+			
+			if (message.channel.id === '985620627585114163') {
+				try {
+					await message.startThread({
+						name: `suggestion-${message.content.slice(0, 90)}`, 
+						autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
+						reason: 'Automatic suggestion discussion thread'
+					});
+				} catch (error) {
+					client.log.error('Failed to create suggestion thread:', error);
+				}
+			}
+		}
 
 		if (message.channel.type === ChannelType.DM) {
 			if (message.author.bot) return false;
